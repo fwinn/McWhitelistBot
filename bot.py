@@ -9,9 +9,11 @@ bot = commands.Bot(command_prefix='.')
 whitelist_location = 'path/to/whitelist.json'
 adminlist_location = 'path/to/admins.json'
 requests_location = 'path/to/requests.json'
-requests_messages = []
-ip = 'your ip'
+bot_token = 'your bot token'
+ip = 'your MC Server ip'
 version = 'minecraft version'
+
+requests_messages = []
 
 
 class Request:
@@ -173,4 +175,4 @@ async def whitelist_error(ctx, error):
         await ctx.send('Please use .whitelist [Minecraft username].')
 
 
-bot.run('your bot token')
+bot.run(bot_token)
