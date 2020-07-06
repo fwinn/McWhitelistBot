@@ -3,10 +3,8 @@ import os
 
 from . import request
 
-# whitelist_location = os.getenv('whitelist_location')
-whitelist_location = '/home/finn/Coding/Data/MCControl/whitelist.json'
-# adminlist_location = os.getenv('adminlist_location')
-adminlist_location = '/home/finn/Coding/Data/MCControl/adminlist.json'
+whitelist_location = os.getenv('whitelist_location')
+adminlist_location = os.getenv('adminlist_location')
 requests_location = os.getenv('requests_location')
 
 
@@ -47,8 +45,8 @@ async def write_whitelist(mc_name, uuid):
 def get_admin_id(guild_id):
     with open(adminlist_location, 'r') as file:
         data = json.load(file)
-    if int(data[str(guild_id)]):
-        return int(data[str(guild_id)])
+    if str(guild_id) in data:
+        return data[str(guild_id)]
     else:
         return None
 

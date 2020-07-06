@@ -6,8 +6,7 @@ from modules import *
 import modules
 
 bot = commands.Bot(command_prefix='.')
-# bot_token = os.getenv('bot_token')
-bot_token = 'NzAzNTQ5NDgxOTE5OTcxMzM5.XwM-Tw.Od5kWXtofnMPfyIZvE18gpJWZzg'
+bot_token = os.getenv('bot_token')
 server_ip = os.getenv('server_ip')
 mc_version = os.getenv('mc_version')
 
@@ -42,7 +41,7 @@ async def on_reaction_add(reaction, user):
             admin = user
             current = take_request(msg.id)
             await msg.delete()
-            if type(current) == current.WhitelistRequest:
+            if type(current) == request.WhitelistRequest:
                 mc_name = current.mc_name
                 dc_user = await bot.fetch_user(current.author_id)
                 if reaction.emoji == '✅':
@@ -54,11 +53,11 @@ async def on_reaction_add(reaction, user):
                     embed.add_field(name='Version', value=mc_version)
                     await dc_user.send(
                         'Your request for the player  `{}` was accepted. It may take up to 5 more minutes'
-                        'until you will be able to join the server.'.format(mc_name),
+                        ' until you will be able to join the server.'.format(mc_name),
                         embed=embed)
-                    await admin.send('The player `` was whitelisted.'.format(mc_name))
+                    await admin.send('The player `{}` was whitelisted.'.format(mc_name))
                 else:
-                    await admin.send('The request for the player `` was denied.'.format(mc_name))
+                    await admin.send('The request for the player `{}` was denied.'.format(mc_name))
                     await dc_user.send('Your request for the player `{}`was denied.'.format(mc_name))
 
 
@@ -67,11 +66,15 @@ async def whitelist(ctx, arg):
     mc_name = arg
     member = ctx.author
     await ctx.message.delete()
-    admin_id = modules.filemanager.get_admin_id(member.guild.id)
-    if not admin_id:
+    print('Checking if Admin defined...')
+    if not modules.filemanager.get_admin_id(member.guild.id):
         await ctx.send('Fatal Error: No admin defined for this server.')
         return
+    print('Fetching admin ID...')
+    admin_id = modules.filemanager.get_admin_id(member.guild.id)
+    print('Fetching admin user...')
     admin = await bot.fetch_user(admin_id)
+    print('Fetching UUID...')
     uuid = util.get_uuid(mc_name)
     if not uuid:
         await ctx.send('Player `{}` not found {}.'.format(mc_name, member.mention))
