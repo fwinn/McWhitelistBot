@@ -1,38 +1,17 @@
-import ast
-
+import os
 import discord
-import requests
-import json
 from discord.ext import commands
 
+from modules import *
+import modules
+
 bot = commands.Bot(command_prefix='.')
-whitelist_location = 'path/to/whitelist.json'
-adminlist_location = 'path/to/admins.json'
-requests_location = 'path/to/requests.json'
-bot_token = 'your bot token'
-ip = 'your MC Server ip'
-version = 'minecraft version'
+# bot_token = os.getenv('bot_token')
+bot_token = 'NzAzNTQ5NDgxOTE5OTcxMzM5.XwM-Tw.Od5kWXtofnMPfyIZvE18gpJWZzg'
+server_ip = os.getenv('server_ip')
+mc_version = os.getenv('mc_version')
 
 requests_messages = []
-
-
-class Request:
-    def __init__(self, author_id, admin_msg_id):
-        self.author_id = author_id
-        self.admin_msg_id = admin_msg_id
-
-
-class WhitelistRequest(Request):
-    def __init__(self, author_id, admin_msg_id, mc_name, uuid):
-        super().__init__(author_id, admin_msg_id)
-        self.mc_name = mc_name
-        self.uuid = uuid
-
-
-def merge_two_dicts(x, y):
-    z = x.copy()
-    z.update(y)
-    return z
 
 
 def take_request(message_id):
@@ -52,15 +31,7 @@ async def on_ready():
 
 @bot.event
 async def on_disconnect():
-    data = []
-    for i in requests_messages:
-        d = {'type': type(i), 'author_id': i.author_id, 'admin_msg_id': i.admin_msg_id}
-        if type(i) == WhitelistRequest:
-            d['mc_name'] = i.mc_name
-            d['uuid'] = i.uuid
-        data.append(d)
-    with open(requests_location, 'w') as outfile:
-        json.dump(data, outfile)
+    modules.filemanager.save_requests(requests_messages)
 
 
 @bot.event
@@ -69,82 +40,51 @@ async def on_reaction_add(reaction, user):
         msg = reaction.message
         if msg.author == bot.user:
             admin = user
-            request = take_request(msg.id)
+            current = take_request(msg.id)
             await msg.delete()
-            if type(request) == WhitelistRequest:
-                mcname = request.mc_name
-                dcuser = await bot.fetch_user(request.author_id)
+            if type(current) == current.WhitelistRequest:
+                mc_name = current.mc_name
+                dc_user = await bot.fetch_user(current.author_id)
                 if reaction.emoji == '✅':
-                    uuid = request.uuid
-                    await writewhitelist(mcname, uuid)
-                    print('Player whitelisted: ' + mcname + ' ' + uuid)
+                    uuid = current.uuid
+                    await modules.filemanager.write_whitelist(mc_name, uuid)
+                    print('Player whitelisted: {} {}'.format(mc_name, uuid))
                     embed = discord.Embed(title='Server', color=0x22a7f0)
-                    embed.add_field(name='IP', value=ip)
-                    embed.add_field(name='Version', value=version)
-                    await dcuser.send(
-                        'Your request for the player  `' + mcname + 'was accepted. It may take up to 5 more minutes'
-                                                                    'until you will be able to join the server.',
+                    embed.add_field(name='IP', value=server_ip)
+                    embed.add_field(name='Version', value=mc_version)
+                    await dc_user.send(
+                        'Your request for the player  `{}` was accepted. It may take up to 5 more minutes'
+                        'until you will be able to join the server.'.format(mc_name),
                         embed=embed)
-                    await admin.send('The player `' + mcname + '` was whitelisted.')
+                    await admin.send('The player `` was whitelisted.'.format(mc_name))
                 else:
-                    await admin.send('The request for the player `' + mcname + '` was denied.')
-                    await dcuser.send('Your request for the player `' + mcname + '`was denied.')
-
-
-def get_uuid(mcname):
-    d = ast.literal_eval(requests.get('https://api.mojang.com/users/profiles/minecraft/' + mcname).text)
-    unformatted = d['id']
-    part = unformatted[:8], unformatted[8:12], unformatted[12:16], unformatted[16:20], unformatted[20:]
-    return part[0] + '-' + part[1] + '-' + part[2] + '-' + part[3] + '-' + part[4]
-
-
-def get_admin_id(guild_id):
-    with open(adminlist_location, 'r') as file:
-        data = json.load(file)
-    return int(data[str(guild_id)])
-
-
-def add_admin(admin_id, guild_id, admins_dict):
-    admins_dict[str(guild_id)] = admin_id
-    with open(adminlist_location, 'w') as outfile:
-        print('Writing admin data...')
-        json.dump(admins_dict, outfile)
-    print('Success')
-
-
-async def writewhitelist(mcname, uuid):
-    print('Writing whitelist...')
-    with open(whitelist_location, 'r') as json_data:
-        data = json.load(json_data)
-        data = merge_two_dicts(data, {"uuid": uuid, "name": mcname})
-    with open(whitelist_location, 'w') as outfile:
-        json.dump(data, outfile)
-    print('Done')
+                    await admin.send('The request for the player `` was denied.'.format(mc_name))
+                    await dc_user.send('Your request for the player `{}`was denied.'.format(mc_name))
 
 
 @bot.command()
 async def whitelist(ctx, arg):
-    mcname = arg
+    mc_name = arg
     member = ctx.author
     await ctx.message.delete()
-    admin_id = get_admin_id(member.guild.id)
+    admin_id = modules.filemanager.get_admin_id(member.guild.id)
     if not admin_id:
         await ctx.send('Fatal Error: No admin defined for this server.')
         return
     admin = await bot.fetch_user(admin_id)
-    uuid = get_uuid(mcname)
+    uuid = util.get_uuid(mc_name)
     if not uuid:
-        await ctx.send('Player `{}` not found {}.'.format(mcname, member.mention))
+        await ctx.send('Player `{}` not found {}.'.format(mc_name, member.mention))
         return
     embed = discord.Embed(title='Whitelist request', color=0x22a7f0)
     embed.add_field(name='by', value=ctx.author.mention)
-    embed.add_field(name='MC-Username', value=mcname)
+    embed.add_field(name='MC-Username', value=mc_name)
     embed.add_field(name='joined server', value=member.joined_at.strftime('%d.%m.%Y, %H:%M'))
-    adminmsg = await admin.send(embed=embed)
-    await adminmsg.add_reaction('✅')
-    await adminmsg.add_reaction('❌')
-    requests_messages.append(WhitelistRequest(ctx.author.id, adminmsg.id, mcname, uuid))
-    await ctx.send('Your request for whitelisting `{}` was sent {}.'.format(mcname, member.mention))
+    admin_msg = await admin.send(embed=embed)
+    await admin_msg.add_reaction('✅')
+    await admin_msg.add_reaction('❌')
+    requests_messages.append(request.WhitelistRequest(ctx.author.id, admin_msg.id, mc_name, uuid))
+    await ctx.send('Your request for whitelisting `{}` was sent {}.'.format(mc_name, member.mention))
 
 
 @bot.command()
@@ -152,21 +92,19 @@ async def imtheadmin(ctx):
     author = ctx.author
     guild_id = ctx.author.guild.id
     await ctx.message.delete()
-    with open(adminlist_location, 'r') as json_data:
-        print('Reading admin data...')
-        data = json.load(json_data)
-    if str(guild_id) in data:
-        old_admin = await bot.fetch_user(get_admin_id(guild_id))
+    old_admin_id = modules.filemanager.get_admin_id(guild_id)
+    if old_admin_id:
+        old_admin = await bot.fetch_user(old_admin_id)
         embed = discord.Embed(title='Admin request')
         embed.add_field(name='by', value=author.mention)
         embed.add_field(name='joined server', value=author.joined_at.strftime('%d.%m.%Y, %H:%M'))
-        adminmsg = await old_admin.send(embed=embed)
-        requests_messages.append(Request(author.id, adminmsg.id))
-        await adminmsg.add_reaction('✅')
-        await adminmsg.add_reaction('❌')
+        admin_msg = await old_admin.send(embed=embed)
+        requests_messages.append(request.Request(author.id, admin_msg.id))
+        await admin_msg.add_reaction('✅')
+        await admin_msg.add_reaction('❌')
         await ctx.send('Your request for administration privileges was sent to an existing admin. ' + author.mention)
     else:
-        add_admin(author.id, guild_id, data)
+        modules.filemanager.add_admin(author.id, guild_id)
 
 
 @whitelist.error
