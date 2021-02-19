@@ -1,60 +1,75 @@
+from datetime import datetime
 import json
+import mysql.connector
 import os
+import _pickle
 
 from . import request
 
-whitelist_location = os.getenv('whitelist_location')
-adminlist_location = os.getenv('adminlist_location')
-requests_location = os.getenv('requests_location')
+whitelist_location = 'data/survival_list.json'
+requests_location = 'data/requests.pk1'
 
+db_host = os.getenv('DB_HOST')
+db_user = os.getenv('DB_USER')
+db_pw = os.getenv('DB_PASSWORD')
+db_name = os.getenv('DB_NAME')
 
-def merge_two_dicts(x, y):
-    z = x.copy()
-    z.update(y)
-    return z
+db = mysql.connector.connect(
+    host=db_host,
+    user=db_user,
+    password=db_pw,
+    database=db_name
+)
+cursor = db.cursor()
 
 
 def json_as_dict(path):
-    with open(adminlist_location) as json_data:
+    with open(path) as json_data:
         return json.load(json_data)
 
 
 def save_requests(requests_messages):
-    data = []
-    for i in requests_messages:
-        d = {'type': type(i), 'author_id': i.author_id, 'admin_msg_id': i.admin_msg_id}
-        if type(i) == request.WhitelistRequest:
-            d['mc_name'] = i.mc_name
-            d['uuid'] = i.uuid
-        data.append(d)
-
-    with open(requests_location, 'w') as outfile:
-        json.dump(data, outfile)
+    with open(requests_location, 'wb') as output:
+        _pickle.dump(requests_messages, output, -1)
 
 
-async def write_whitelist(mc_name, uuid):
-    print('Writing whitelist...')
-    with open(whitelist_location, 'r') as json_data:
-        data = json.load(json_data)
-        data = merge_two_dicts(data, {"uuid": uuid, "name": mc_name})
-    with open(whitelist_location, 'w') as outfile:
-        json.dump(data, outfile)
-    print('Done')
+def load_requests():
+    try:
+        with open(requests_location, 'rb') as file:
+            r = _pickle.load(file)
+    except FileNotFoundError:
+        r = []
+    return r
 
 
-def get_admin_id(guild_id):
-    with open(adminlist_location, 'r') as file:
-        data = json.load(file)
-    if str(guild_id) in data:
-        return data[str(guild_id)]
-    else:
-        return None
+async def write_whitelist(r: request.WhitelistRequest):
+    uuid = r.uuid
+    first_name = r.first_name
+    classs = r.classs
+    dc_id = r.dc_id
+
+    # Database:
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    print('Writing database...')
+    sql = 'INSERT INTO dc_users (uuid, dc_id, first_name, classs, date) VALUES (%s, %s, %s, %s, %s)'
+    val = (uuid, dc_id, first_name, classs, timestamp)
+    cursor.execute(sql, val)
+    db.commit()
+    print('done')
 
 
-def add_admin(admin_id, guild_id):
-    admins_dict = json_as_dict(adminlist_location)
-    admins_dict[str(guild_id)] = admin_id
-    with open(adminlist_location, 'w') as outfile:
-        print('Writing admin data...')
-        json.dump(admins_dict, outfile)
-    print('Success')
+def uuid_in_whitelist(uuid):
+    print('Looking up UUID in the database...')
+    sql = "SELECT COUNT(*) FROM dc_users WHERE uuid = '%s'" % uuid
+    cursor.execute(sql)
+    result = cursor.fetchone()
+    print('Result: ' + str(result))
+    return result[0]
+
+
+def dc_id_in_whitelist(dc_id):
+    print('Looking up Discord ID in the database...')
+    sql = "SELECT COUNT(*) FROM dc_users WHERE dc_id = '%s'" % dc_id
+    cursor.execute(sql)
+    result = cursor.fetchone()
+    return result[0]

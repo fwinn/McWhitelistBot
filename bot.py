@@ -1,15 +1,15 @@
-import os
 import discord
 from discord.ext import commands
+import os
 
 from modules import *
 import modules
 
 bot = commands.Bot(command_prefix='.')
-bot_token = os.getenv('bot_token')
-server_ip = os.getenv('server_ip')
-mc_version = os.getenv('mc_version')
-
+bot_token = os.getenv('BOT_TOKEN')
+server_ip = os.getenv('SERVER_IP')
+mc_version = '1.16.5'
+admin_channel = int(os.getenv('ADMIN_CHANNEL_ID'))
 requests_messages = []
 
 
@@ -23,13 +23,16 @@ def take_request(message_id):
 
 @bot.event
 async def on_ready():
-    print('Ready, username: {}'.format(bot.user.name))
     await bot.change_presence(activity=discord.Game('Minecraft'), status=discord.Status.online)
-    # TODO: Read pending requests out of file
+    global requests_messages
+    requests_messages = modules.filemanager.load_requests()
+    print('Requests loaded from last sessions: ' + str(requests_messages))
+    print('Ready, username: {}'.format(bot.user.name))
 
 
 @bot.event
 async def on_disconnect():
+    await bot.change_presence(status=discord.Status.offline)
     modules.filemanager.save_requests(requests_messages)
 
 
@@ -38,82 +41,73 @@ async def on_reaction_add(reaction, user):
     if not user.bot:
         msg = reaction.message
         if msg.author == bot.user:
-            admin = user
+            admin = bot.get_channel(admin_channel)
             current = take_request(msg.id)
-            await msg.delete()
+            await msg.clear_reactions()
             if type(current) == request.WhitelistRequest:
+                dc_user = await bot.fetch_user(current.dc_id)
                 mc_name = current.mc_name
-                dc_user = await bot.fetch_user(current.author_id)
                 if reaction.emoji == '✅':
-                    uuid = current.uuid
-                    await modules.filemanager.write_whitelist(mc_name, uuid)
-                    print('Player whitelisted: {} {}'.format(mc_name, uuid))
+                    await modules.filemanager.write_whitelist(current)
+                    print('Player whitelisted: {} {} {}'.format(mc_name, current.first_name, current.classs))
                     embed = discord.Embed(title='Server', color=0x22a7f0)
                     embed.add_field(name='IP', value=server_ip)
                     embed.add_field(name='Version', value=mc_version)
                     await dc_user.send(
-                        'Your request for the player  `{}` was accepted. It may take up to 5 more minutes'
-                        ' until you will be able to join the server.'.format(mc_name),
+                        'Deine Anfrage für den Account `{}` wurde angenommen. Womöglich dauert es noch kurz,'
+                        ' bis du auf dem Server spielen kannst.'.format(mc_name),
                         embed=embed)
                     await admin.send('The player `{}` was whitelisted.'.format(mc_name))
                 else:
                     await admin.send('The request for the player `{}` was denied.'.format(mc_name))
-                    await dc_user.send('Your request for the player `{}`was denied.'.format(mc_name))
+                    await dc_user.send('Deine Anfrage für den Spieler `{}`wurde abgelehnt. Bei Fragen kontaktiere die '
+                                       'Admins im support-Channel auf dem Discord-Server.'.format(mc_name))
 
 
 @bot.command()
-async def whitelist(ctx, arg):
-    mc_name = arg
+async def whitelist(ctx, arg1, arg2, arg3):
+    mc_name = arg1
+    first_name = arg2
+    classs = arg3
     member = ctx.author
     await ctx.message.delete()
-    print('Checking if Admin defined...')
-    if not modules.filemanager.get_admin_id(member.guild.id):
-        await ctx.send('Fatal Error: No admin defined for this server.')
-        return
-    print('Fetching admin ID...')
-    admin_id = modules.filemanager.get_admin_id(member.guild.id)
-    print('Fetching admin user...')
-    admin = await bot.fetch_user(admin_id)
+    admins = bot.get_channel(admin_channel)
     print('Fetching UUID...')
     uuid = util.get_uuid(mc_name)
     if not uuid:
-        await ctx.send('Player `{}` not found {}.'.format(mc_name, member.mention))
+        await ctx.send('Der Spieler `{}` wurde nicht gefunden {}.'.format(mc_name, member.mention))
         return
-    embed = discord.Embed(title='Whitelist request', color=0x22a7f0)
-    embed.add_field(name='by', value=ctx.author.mention)
+    if modules.filemanager.uuid_in_whitelist(uuid) > 0:
+        await ctx.send('Der Spieler `{}` ist bereits gewhitelistet {}.'.format(mc_name, member.mention))
+        return
+    embed = discord.Embed(title='Whitelist-Anfrage', color=0x22a7f0)
+    embed.add_field(name='von', value=member.mention)
     embed.add_field(name='MC-Username', value=mc_name)
-    embed.add_field(name='joined server', value=member.joined_at.strftime('%d.%m.%Y, %H:%M'))
-    admin_msg = await admin.send(embed=embed)
+    embed.add_field(name='Vorname', value=first_name)
+    embed.add_field(name='Klasse', value=classs)
+    embed.add_field(
+        name='Von diesem User bereits gewhitelistet', value=modules.filemanager.dc_id_in_whitelist(member.id)
+    )
+    admin_msg = await admins.send(embed=embed)
     await admin_msg.add_reaction('✅')
     await admin_msg.add_reaction('❌')
-    requests_messages.append(request.WhitelistRequest(ctx.author.id, admin_msg.id, mc_name, uuid))
-    await ctx.send('Your request for whitelisting `{}` was sent {}.'.format(mc_name, member.mention))
+    requests_messages.append(request.WhitelistRequest(member.id, admin_msg.id, mc_name, uuid, first_name, classs))
+    await ctx.send('Deine Anfrage für `{}` wurde versandt {}.'.format(mc_name, member.mention))
 
 
 @bot.command()
-async def imtheadmin(ctx):
-    author = ctx.author
-    guild_id = ctx.author.guild.id
-    await ctx.message.delete()
-    old_admin_id = modules.filemanager.get_admin_id(guild_id)
-    if old_admin_id:
-        old_admin = await bot.fetch_user(old_admin_id)
-        embed = discord.Embed(title='Admin request')
-        embed.add_field(name='by', value=author.mention)
-        embed.add_field(name='joined server', value=author.joined_at.strftime('%d.%m.%Y, %H:%M'))
-        admin_msg = await old_admin.send(embed=embed)
-        requests_messages.append(request.Request(author.id, admin_msg.id))
-        await admin_msg.add_reaction('✅')
-        await admin_msg.add_reaction('❌')
-        await ctx.send('Your request for administration privileges was sent to an existing admin. ' + author.mention)
-    else:
-        modules.filemanager.add_admin(author.id, guild_id)
+async def shutdown(ctx):
+    if ctx.channel.id == admin_channel:
+        await ctx.send('Shutting down...')
+        await bot.logout()
 
 
 @whitelist.error
 async def whitelist_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send('Please use .whitelist [Minecraft username].')
+        print(error)
+        await ctx.send('Bitte benutze `.whitelist [Minecraft username] [Vorname] [Klasse].` (keine Leerzeichen '
+                       'innerhalb der Argumente)')
 
 
 bot.run(bot_token)
