@@ -77,7 +77,8 @@ async def whitelist(ctx, arg1, arg2, arg3):
     if not uuid:
         await ctx.send('Der Spieler `{}` wurde nicht gefunden {}.'.format(mc_name, member.mention))
         return
-    if modules.filemanager.uuid_in_whitelist(uuid) > 0:
+    ids_in_db_amount = modules.filemanager.ids_in_db(uuid, member.id)
+    if ids_in_db_amount[0] > 0:
         await ctx.send('Der Spieler `{}` ist bereits gewhitelistet {}.'.format(mc_name, member.mention))
         return
     embed = discord.Embed(title='Whitelist-Anfrage', color=0x22a7f0)
@@ -85,9 +86,7 @@ async def whitelist(ctx, arg1, arg2, arg3):
     embed.add_field(name='MC-Username', value=mc_name)
     embed.add_field(name='Vorname', value=first_name)
     embed.add_field(name='Klasse', value=classs)
-    embed.add_field(
-        name='Von diesem User bereits gewhitelistet', value=modules.filemanager.dc_id_in_whitelist(member.id)
-    )
+    embed.add_field(name='Von diesem User bereits gewhitelistet', value=ids_in_db_amount[1])
     admin_msg = await admins.send(embed=embed)
     await admin_msg.add_reaction('✅')
     await admin_msg.add_reaction('❌')
@@ -98,7 +97,6 @@ async def whitelist(ctx, arg1, arg2, arg3):
 @bot.command()
 async def shutdown(ctx):
     if ctx.channel.id == admin_channel:
-        await ctx.send('Shutting down...')
         await bot.logout()
 
 

@@ -14,14 +14,14 @@ db_user = os.getenv('DB_USER')
 db_pw = os.getenv('DB_PASSWORD')
 db_name = os.getenv('DB_NAME')
 
-db = mysql.connector.connect(
-    host=db_host,
-    user=db_user,
-    password=db_pw,
-    database=db_name
-)
-cursor = db.cursor()
 
+def get_db():
+    return mysql.connector.connect(
+        host=db_host,
+        user=db_user,
+        password=db_pw,
+        database=db_name
+    )
 
 def json_as_dict(path):
     with open(path) as json_data:
@@ -49,27 +49,37 @@ async def write_whitelist(r: request.WhitelistRequest):
     dc_id = r.dc_id
 
     # Database:
+    db = get_db()
+    cursor = db.cursor()
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print('Writing database...')
     sql = 'INSERT INTO dc_users (uuid, dc_id, first_name, classs, date) VALUES (%s, %s, %s, %s, %s)'
     val = (uuid, dc_id, first_name, classs, timestamp)
     cursor.execute(sql, val)
     db.commit()
+    cursor.close()
+    db.close()
     print('done')
 
 
-def uuid_in_whitelist(uuid):
+def ids_in_db(uuid, dc_id):
+    result = []
+    print('Connecting to Database...')
+    db = get_db()
+    cursor = db.cursor()
     print('Looking up UUID in the database...')
     sql = "SELECT COUNT(*) FROM dc_users WHERE uuid = '%s'" % uuid
     cursor.execute(sql)
-    result = cursor.fetchone()
-    print('Result: ' + str(result))
-    return result[0]
+    amount_mc = cursor.fetchone()[0]
+    result.append(amount_mc)
+    cursor.close()
 
-
-def dc_id_in_whitelist(dc_id):
     print('Looking up Discord ID in the database...')
+    cursor = db.cursor()
     sql = "SELECT COUNT(*) FROM dc_users WHERE dc_id = '%s'" % dc_id
     cursor.execute(sql)
-    result = cursor.fetchone()
-    return result[0]
+    amount_dc = cursor.fetchone()[0]
+    print(amount_dc)
+    result.append(amount_dc)
+    print(str(result))
+    return result
