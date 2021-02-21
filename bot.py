@@ -5,6 +5,11 @@ import os
 from modules import *
 import modules
 
+import logging
+logging_level = os.getenv('LOGGING_LEVEL')
+level = logging.getLevelName(logging_level)
+logging.basicConfig(level=level)
+
 bot = commands.Bot(command_prefix='.')
 bot_token = os.getenv('BOT_TOKEN')
 server_ip = os.getenv('SERVER_IP')
@@ -26,8 +31,8 @@ async def on_ready():
     await bot.change_presence(activity=discord.Game('Minecraft'), status=discord.Status.online)
     global requests_messages
     requests_messages = modules.filemanager.load_requests()
-    print('Requests loaded from last sessions: ' + str(requests_messages))
-    print('Ready, username: {}'.format(bot.user.name))
+    logging.info('Requests loaded from last sessions: ' + str(requests_messages))
+    logging.info('Ready, username: {}'.format(bot.user.name))
 
 
 @bot.event
@@ -49,7 +54,7 @@ async def on_reaction_add(reaction, user):
                 mc_name = current.mc_name
                 if reaction.emoji == '✅':
                     await modules.filemanager.write_whitelist(current)
-                    print('Player whitelisted: {} {} {}'.format(mc_name, current.first_name, current.classs))
+                    logging.info('Player whitelisted: {} {} {}'.format(mc_name, current.first_name, current.classs))
                     embed = discord.Embed(title='Server', color=0x22a7f0)
                     embed.add_field(name='IP', value=server_ip)
                     embed.add_field(name='Version', value=mc_version)
@@ -72,7 +77,7 @@ async def whitelist(ctx, arg1, arg2, arg3):
     member = ctx.author
     await ctx.message.delete()
     admins = bot.get_channel(admin_channel)
-    print('Fetching UUID...')
+    logging.info('Fetching UUID...')
     uuid = util.get_uuid(mc_name)
     if not uuid:
         await ctx.send('Der Spieler `{}` wurde nicht gefunden {}.'.format(mc_name, member.mention))
@@ -103,7 +108,7 @@ async def shutdown(ctx):
 @whitelist.error
 async def whitelist_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
-        print(error)
+        logging.info(error)
         await ctx.send('Bitte benutze `.whitelist [Minecraft username] [Vorname] [Klasse].` (keine Leerzeichen '
                        'innerhalb der Argumente)')
 

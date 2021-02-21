@@ -52,34 +52,34 @@ async def write_whitelist(r: request.WhitelistRequest):
     db = get_db()
     cursor = db.cursor()
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    print('Writing database...')
+    logging.info('Writing database...')
     sql = 'INSERT INTO dc_users (uuid, dc_id, first_name, classs, date) VALUES (%s, %s, %s, %s, %s)'
     val = (uuid, dc_id, first_name, classs, timestamp)
     cursor.execute(sql, val)
     db.commit()
     cursor.close()
     db.close()
-    print('done')
+    logging.info('done')
 
 
 def ids_in_db(uuid, dc_id):
     result = []
-    print('Connecting to Database...')
+    logging.info('Connecting to Database...')
     db = get_db()
     cursor = db.cursor()
-    print('Looking up UUID in the database...')
+    logging.info('Looking up UUID in the database...')
     sql = "SELECT COUNT(*) FROM dc_users WHERE uuid = '%s'" % uuid
     cursor.execute(sql)
     amount_mc = cursor.fetchone()[0]
     result.append(amount_mc)
     cursor.close()
 
-    print('Looking up Discord ID in the database...')
+    logging.info('Looking up Discord ID in the database...')
     cursor = db.cursor()
     sql = "SELECT COUNT(*) FROM dc_users WHERE dc_id = '%s'" % dc_id
     cursor.execute(sql)
     amount_dc = cursor.fetchone()[0]
-    print(amount_dc)
+    logging.info(amount_dc)
     result.append(amount_dc)
-    print(str(result))
+    logging.info(str(result))
     return result
