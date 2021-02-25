@@ -8,7 +8,7 @@ import modules
 import logging
 logging_level = os.getenv('LOGGING_LEVEL')
 level = logging.getLevelName(logging_level)
-logging.basicConfig(level=level)
+logging.basicConfig(level=level, filename='log/bot.log')
 
 bot = commands.Bot(command_prefix='.')
 bot_token = os.getenv('BOT_TOKEN')
@@ -26,6 +26,7 @@ def take_request(message_id):
             return tmp
 
 
+# Bot events:
 @bot.event
 async def on_ready():
     await bot.change_presence(activity=discord.Game('Minecraft'), status=discord.Status.online)
@@ -35,10 +36,7 @@ async def on_ready():
     logging.info('Ready, username: {}'.format(bot.user.name))
 
 
-@bot.event
-async def on_disconnect():
-    await bot.change_presence(status=discord.Status.offline)
-    modules.filemanager.save_requests(requests_messages)
+
 
 
 @bot.event
@@ -69,19 +67,22 @@ async def on_reaction_add(reaction, user):
                                        'Admins im support-Channel auf dem Discord-Server.'.format(mc_name))
 
 
+# Bot commands:
 @bot.command()
 async def whitelist(ctx, arg1, arg2, arg3):
+    logging.info('Request incoming...')
     mc_name = arg1
     first_name = arg2
     classs = arg3
     member = ctx.author
     await ctx.message.delete()
     admins = bot.get_channel(admin_channel)
-    logging.info('Fetching UUID...')
+    logging.debug('Fetching UUID...')
     uuid = util.get_uuid(mc_name)
     if not uuid:
         await ctx.send('Der Spieler `{}` wurde nicht gefunden {}.'.format(mc_name, member.mention))
         return
+    logging.debug('Checking if IDs are already in the database...')
     ids_in_db_amount = modules.filemanager.ids_in_db(uuid, member.id)
     if ids_in_db_amount[0] > 0:
         await ctx.send('Der Spieler `{}` ist bereits gewhitelistet {}.'.format(mc_name, member.mention))
@@ -97,18 +98,22 @@ async def whitelist(ctx, arg1, arg2, arg3):
     await admin_msg.add_reaction('❌')
     requests_messages.append(request.WhitelistRequest(member.id, admin_msg.id, mc_name, uuid, first_name, classs))
     await ctx.send('Deine Anfrage für `{}` wurde versandt {}.'.format(mc_name, member.mention))
+    logging.info('Request succesful')
 
 
 @bot.command()
 async def shutdown(ctx):
     if ctx.channel.id == admin_channel:
+        await bot.change_presence(status=discord.Status.offline)
+        modules.filemanager.save_requests(requests_messages)
         await bot.logout()
 
 
+# Errors:
 @whitelist.error
 async def whitelist_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
-        logging.info(error)
+        logging.error(error)
         await ctx.send('Bitte benutze `.whitelist [Minecraft username] [Vorname] [Klasse].` (keine Leerzeichen '
                        'innerhalb der Argumente)')
 

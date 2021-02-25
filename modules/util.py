@@ -1,10 +1,11 @@
 import ast
 import json
+import logging
 import requests
 
 
 def get_uuid(mc_name):
-    logging.info('Requesting API...')
+    logging.debug('Requesting API...')
     html = requests.get('https://api.mojang.com/users/profiles/minecraft/' + mc_name).text
     if len(html) < 1:
         return

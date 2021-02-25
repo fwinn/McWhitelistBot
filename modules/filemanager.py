@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import mysql.connector
+import logging
 import os
 import _pickle
 
@@ -16,12 +17,17 @@ db_name = os.getenv('DB_NAME')
 
 
 def get_db():
-    return mysql.connector.connect(
-        host=db_host,
-        user=db_user,
-        password=db_pw,
-        database=db_name
-    )
+    logging.debug('Connecting to database...')
+    try:
+        return mysql.connector.connect(
+            host=db_host,
+            user=db_user,
+            password=db_pw,
+            database=db_name
+        )
+    except mysql.connector.Error as err:
+        logging.critical('Error: ' + str(err))
+
 
 def json_as_dict(path):
     with open(path) as json_data:
@@ -52,34 +58,32 @@ async def write_whitelist(r: request.WhitelistRequest):
     db = get_db()
     cursor = db.cursor()
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    logging.info('Writing database...')
+    logging.debug('Writing database...')
     sql = 'INSERT INTO dc_users (uuid, dc_id, first_name, classs, date) VALUES (%s, %s, %s, %s, %s)'
     val = (uuid, dc_id, first_name, classs, timestamp)
     cursor.execute(sql, val)
     db.commit()
     cursor.close()
     db.close()
-    logging.info('done')
+    logging.debug('done')
 
 
 def ids_in_db(uuid, dc_id):
     result = []
-    logging.info('Connecting to Database...')
+    logging.debug('Connecting to Database...')
     db = get_db()
     cursor = db.cursor()
-    logging.info('Looking up UUID in the database...')
+    logging.debug('Looking up UUID in the database...')
     sql = "SELECT COUNT(*) FROM dc_users WHERE uuid = '%s'" % uuid
     cursor.execute(sql)
     amount_mc = cursor.fetchone()[0]
     result.append(amount_mc)
     cursor.close()
 
-    logging.info('Looking up Discord ID in the database...')
+    logging.debug('Looking up Discord ID in the database...')
     cursor = db.cursor()
     sql = "SELECT COUNT(*) FROM dc_users WHERE dc_id = '%s'" % dc_id
     cursor.execute(sql)
     amount_dc = cursor.fetchone()[0]
-    logging.info(amount_dc)
     result.append(amount_dc)
-    logging.info(str(result))
     return result
