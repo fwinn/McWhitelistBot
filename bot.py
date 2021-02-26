@@ -6,6 +6,7 @@ from modules import *
 import modules
 
 import logging
+
 logging_level = os.getenv('LOGGING_LEVEL')
 level = logging.getLevelName(logging_level)
 logging.basicConfig(level=level, filename='log/bot.log')
@@ -34,9 +35,6 @@ async def on_ready():
     requests_messages = modules.filemanager.load_requests()
     logging.info('Requests loaded from last sessions: ' + str(requests_messages))
     logging.info('Ready, username: {}'.format(bot.user.name))
-
-
-
 
 
 @bot.event
@@ -82,7 +80,6 @@ async def whitelist(ctx, arg1, arg2, arg3):
     if not uuid:
         await ctx.send('Der Spieler `{}` wurde nicht gefunden {}.'.format(mc_name, member.mention))
         return
-    logging.debug('Checking if IDs are already in the database...')
     ids_in_db_amount = modules.filemanager.ids_in_db(uuid, member.id)
     if ids_in_db_amount[0] > 0:
         await ctx.send('Der Spieler `{}` ist bereits gewhitelistet {}.'.format(mc_name, member.mention))

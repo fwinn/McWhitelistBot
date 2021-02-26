@@ -5,7 +5,7 @@ import requests
 
 
 def get_uuid(mc_name):
-    logging.debug('Requesting API...')
+    logging.debug('Requesting Mojang API...')
     html = requests.get('https://api.mojang.com/users/profiles/minecraft/' + mc_name).text
     if len(html) < 1:
         return
@@ -16,4 +16,6 @@ def get_uuid(mc_name):
     else:
         return
     part = unformatted[:8], unformatted[8:12], unformatted[12:16], unformatted[16:20], unformatted[20:]
-    return part[0] + '-' + part[1] + '-' + part[2] + '-' + part[3] + '-' + part[4]
+    uuid = '-'.join(part)
+    logging.info('UUID fetched: ' + uuid)
+    return uuid

@@ -17,7 +17,7 @@ db_name = os.getenv('DB_NAME')
 
 
 def get_db():
-    logging.debug('Connecting to database...')
+    logging.info('Connecting to database...')
     try:
         return mysql.connector.connect(
             host=db_host,
@@ -58,7 +58,7 @@ async def write_whitelist(r: request.WhitelistRequest):
     db = get_db()
     cursor = db.cursor()
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    logging.debug('Writing database...')
+    logging.info('Writing database...')
     sql = 'INSERT INTO dc_users (uuid, dc_id, first_name, classs, date) VALUES (%s, %s, %s, %s, %s)'
     val = (uuid, dc_id, first_name, classs, timestamp)
     cursor.execute(sql, val)
@@ -69,8 +69,8 @@ async def write_whitelist(r: request.WhitelistRequest):
 
 
 def ids_in_db(uuid, dc_id):
+    logging.info('Checking if IDs are already in the database...')
     result = []
-    logging.debug('Connecting to Database...')
     db = get_db()
     cursor = db.cursor()
     logging.debug('Looking up UUID in the database...')
