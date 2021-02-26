@@ -24,7 +24,7 @@ ENV server_ip="127.0.0.1"
 ENV mc_version="mc_version"
 ENV whitelist_location="/config/whitelist.json"
 ENV adminlist_location="/config/adminlist.json"
-ENV requests_location="/config/requests.json"
+ENV requests_location="/config/requests.pk1"
 
 WORKDIR /usr/src/app
 
