@@ -28,13 +28,6 @@ def take_request(message_id):
 
 
 # Bot events:
-@bot.event
-async def on_ready():
-    await bot.change_presence(activity=discord.Game('Minecraft'), status=discord.Status.online)
-    global requests_messages
-    requests_messages = modules.filemanager.load_requests()
-    logging.info('Requests loaded from last sessions: ' + str(requests_messages))
-    logging.info('Ready, username: {}'.format(bot.user.name))
 
 
 @bot.event
@@ -65,7 +58,25 @@ async def on_reaction_add(reaction, user):
                                        'Admins im support-Channel auf dem Discord-Server.'.format(mc_name))
 
 
+@bot.event
+async def on_ready():
+    await bot.change_presence(activity=discord.Game('Minecraft'), status=discord.Status.online)
+    global requests_messages
+    requests_messages = modules.filemanager.load_requests()
+    logging.info('Requests loaded from last sessions: ' + str(requests_messages))
+    logging.info('Ready, username: {}'.format(bot.user.name))
+
+
 # Bot commands:
+
+@bot.command()
+async def shutdown(ctx):
+    if ctx.channel.id == admin_channel:
+        await bot.change_presence(status=discord.Status.offline)
+        modules.filemanager.save_requests(requests_messages)
+        await bot.logout()
+
+
 @bot.command()
 async def whitelist(ctx, arg1, arg2, arg3):
     logging.info('Request incoming...')
@@ -96,14 +107,6 @@ async def whitelist(ctx, arg1, arg2, arg3):
     requests_messages.append(request.WhitelistRequest(member.id, admin_msg.id, mc_name, uuid, first_name, classs))
     await ctx.send('Deine Anfrage für `{}` wurde versandt {}.'.format(mc_name, member.mention))
     logging.info('Request succesful')
-
-
-@bot.command()
-async def shutdown(ctx):
-    if ctx.channel.id == admin_channel:
-        await bot.change_presence(status=discord.Status.offline)
-        modules.filemanager.save_requests(requests_messages)
-        await bot.logout()
 
 
 # Errors:
