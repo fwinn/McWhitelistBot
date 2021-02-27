@@ -7,7 +7,7 @@ import requests
 def get_uuid(mc_name):
     logging.debug('Requesting Mojang API...')
     html = requests.get('https://api.mojang.com/users/profiles/minecraft/' + mc_name).text
-    if len(html) < 1:
+    if len(html) == 0:
         return
     d_string = json.loads(json.dumps(html))
     d = ast.literal_eval(d_string)
