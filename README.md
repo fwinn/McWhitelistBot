@@ -21,6 +21,10 @@ A Discord bot that allows you to whitelist players on a Minecraft server.
 * `CHANNEL_ID_REQUESTS`: Channel ID for requests that have to be accepted / denied
 * `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
 
+If you want to receive mail notifications about critical errors: (credentials for the account the mails will be sent from)
+* `MAIL_PASSWORD`, `SMTP_SERVER`, `MAIL_LOGIN` (username)
+* `RECEIVER_EMAILS`: List of e-mail receivers, sperated by spaces (set it via `export RECEIVER_EMAILS="abc@def.de qwertz@example.com"`)
+
 ### Table creation pattern
 ```
 create table dc_users

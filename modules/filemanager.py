@@ -5,7 +5,7 @@ import logging
 import os
 import _pickle
 
-from . import request
+from . import mail, request
 
 whitelist_location = 'data/survival_list.json'
 requests_location = 'data/requests.pk1'
@@ -27,6 +27,7 @@ def get_db():
         )
     except mysql.connector.Error as err:
         logging.critical('Error: ' + str(err))
+        mail.send_mail("ERROR: Database connection isn't working anymore")
 
 
 def json_as_dict(path):
@@ -74,16 +75,18 @@ def ids_in_db(uuid, dc_id):
     db = get_db()
     cursor = db.cursor()
     logging.debug('Looking up UUID in the database...')
-    sql = "SELECT COUNT(*) FROM dc_users WHERE uuid = '%s'" % uuid
-    cursor.execute(sql)
+    sql = "SELECT COUNT(*) FROM dc_users WHERE uuid = %s;"
+    val = (uuid,)
+    cursor.execute(sql, val)
     amount_mc = cursor.fetchone()[0]
     result.append(amount_mc)
     cursor.close()
 
     logging.debug('Looking up Discord ID in the database...')
     cursor = db.cursor()
-    sql = "SELECT COUNT(*) FROM dc_users WHERE dc_id = '%s'" % dc_id
-    cursor.execute(sql)
+    sql = "SELECT COUNT(*) FROM dc_users WHERE dc_id = %s;"
+    val = (dc_id,)
+    cursor.execute(sql, val)
     amount_dc = cursor.fetchone()[0]
     result.append(amount_dc)
     return result

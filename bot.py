@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import os
 
-from modules import banhammer, filemanager, request, util
+from modules import banhammer, filemanager, mail, request, util
 
 import logging
 
@@ -67,6 +67,7 @@ async def on_ready():
     requests_messages = filemanager.load_requests()
     logging.info('Requests loaded from last sessions: ' + str(requests_messages))
     logging.info('Ready, username: {}'.format(bot.user.name))
+    mail.send_mail('Discord bot started')
 
 
 # Bot commands:
