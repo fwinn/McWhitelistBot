@@ -1,6 +1,6 @@
-import logging
 import os
-import smtplib, ssl
+import smtplib
+import ssl
 
 port = 465
 password = os.getenv('MAIL_PASSWORD')

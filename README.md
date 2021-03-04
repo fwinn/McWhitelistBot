@@ -20,6 +20,7 @@ A Discord bot that allows you to whitelist players on a Minecraft server.
 * `ADMIN_CHANNEL_ID`: ID of a Discord server's text channel for commands performed by admins
 * `CHANNEL_ID_REQUESTS`: Channel ID for requests that have to be accepted / denied
 * `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+* `RULES_ADDRESS`: URL to a website with rules for the server. (optional)
 
 If you want to receive mail notifications about critical errors: (credentials for the account the mails will be sent from)
 * `MAIL_PASSWORD`, `SMTP_SERVER`, `MAIL_LOGIN` (username)

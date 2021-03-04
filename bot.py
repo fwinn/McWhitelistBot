@@ -1,10 +1,10 @@
-import discord
-from discord.ext import commands
+import logging
 import os
 
-from modules import banhammer, filemanager, mail, request, util
+import discord
+from discord.ext import commands
 
-import logging
+from modules import banhammer, filemanager, request, util
 
 logging_level = os.getenv('LOGGING_LEVEL')
 level = logging.getLevelName(logging_level)
@@ -18,6 +18,8 @@ mc_version = '1.16.5'
 admin_channel = int(os.getenv('ADMIN_CHANNEL_ID'))
 # Discord Channel used for confirming / denying requests:
 requests_channel = int(os.getenv('CHANNEL_ID_REQUESTS'))
+if os.getenv('RULES_ADDRESS'):
+    rules_address = os.getenv('RULES_ADDRESS')
 requests_messages = []
 
 
@@ -47,11 +49,12 @@ async def on_reaction_add(reaction, user):
         await filemanager.write_whitelist(current)
         logging.info('Player whitelisted: {} {} {}'.format(mc_name, current.first_name, current.classs))
         embed = discord.Embed(title='Server', color=0x22a7f0)
+        if rules_address:
+            embed.add_field(name='Regeln', value=rules_address)
         embed.add_field(name='IP', value=server_ip)
         embed.add_field(name='Version', value=mc_version)
         await dc_user.send(
-            'Deine Anfrage für den Account `{}` wurde angenommen. Womöglich dauert es noch kurz,'
-            ' bis du auf dem Server spielen kannst.'.format(mc_name),
+            'Deine Anfrage für den Account `{}` wurde angenommen. Bitte lies dir noch die Regeln durch.'.format(mc_name),
             embed=embed)
         await admin.send('The player `{}` was whitelisted.'.format(mc_name))
     else:
@@ -67,7 +70,6 @@ async def on_ready():
     requests_messages = filemanager.load_requests()
     logging.info('Requests loaded from last sessions: ' + str(requests_messages))
     logging.info('Ready, username: {}'.format(bot.user.name))
-    mail.send_mail('Discord bot started')
 
 
 # Bot commands:
@@ -139,8 +141,8 @@ async def whitelist(ctx, arg1, arg2, arg3):
 async def whitelist_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
         logging.error(error)
-        await ctx.send('Bitte benutze `.whitelist [Minecraft username] [Vorname] [Klasse].` (keine Leerzeichen '
-                       'innerhalb der Argumente)')
+        await ctx.send(
+            'Bitte benutze `.whitelist Minecraft_username Vorname Klasse.` (keine Leerzeichen innerhalb der Argumente)')
 
 
 bot.run(bot_token)
