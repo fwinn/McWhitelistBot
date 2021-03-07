@@ -54,7 +54,8 @@ async def on_reaction_add(reaction, user):
         embed.add_field(name='IP', value=server_ip)
         embed.add_field(name='Version', value=mc_version)
         await dc_user.send(
-            'Deine Anfrage für den Account `{}` wurde angenommen. Bitte lies dir noch die Regeln durch.'.format(mc_name),
+            'Deine Anfrage für den Account `{}` wurde angenommen. Bitte lies dir noch die Regeln durch.'.format(
+                mc_name),
             embed=embed)
         await admin.send('The player `{}` was whitelisted.'.format(mc_name))
     else:
@@ -75,24 +76,29 @@ async def on_ready():
 # Bot commands:
 
 @bot.command()
-async def mcban(ctx, arg):
+async def ban(ctx, *args):
     if ctx.channel.id != admin_channel:
         return
-    if '<@!' in arg:
+    target = args[0]
+    reason = ' '.join(args[1:])
+    if len(reason) > 255:
+        await ctx.send('Reason too long (Max 255 chars)')
+        return
+    if '<@!' in target:
         # arg is expected to be a Discord User
-        dc_id = arg.strip('<@!>')
+        dc_id = target.strip('<@!>')
         logging.info('Discord ID to remove from whitelist: ' + dc_id)
-        banhammer.ban_by_dc_id(dc_id)
-        await ctx.send(arg + ' has been removed from the whitelist.')
+        banhammer.ban_by_dc_id(dc_id, reason)
+        await ctx.send('{} has been removed from the whitelist. (Reason: {})'.format(target, reason))
     else:
         # arg is expected to be a Minecraft Username
         logging.info('Banning by Minecraft name...')
-        uuid = util.get_uuid(arg)
+        uuid = util.get_uuid(target)
         if not uuid:
-            await ctx.send('Player `{}` not found.'.format(arg))
+            await ctx.send('Player `{}` not found.'.format(target))
             return
-        banhammer.ban_by_mc_uuid(uuid)
-        await ctx.send('MC Acc {} was banned'.format(arg))
+        banhammer.ban_by_mc_uuid(uuid, reason)
+        await ctx.send('MC Acc {} was banned. (Reason: {})'.format(target, reason).format(target))
 
 
 @bot.command()
@@ -102,6 +108,11 @@ async def shutdown(ctx):
     await bot.change_presence(status=discord.Status.offline)
     filemanager.save_requests(requests_messages)
     await bot.logout()
+
+
+@bot.command()
+async def test(ctx, args):
+    print(str(args))
 
 
 @bot.command()

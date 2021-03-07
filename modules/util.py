@@ -1,4 +1,5 @@
 import ast
+from datetime import datetime
 import json
 import logging
 import requests
@@ -19,3 +20,7 @@ def get_uuid(mc_name):
     uuid = '-'.join(part)
     logging.info('UUID fetched: ' + uuid)
     return uuid
+
+
+def now():
+    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')

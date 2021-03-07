@@ -38,6 +38,32 @@ create table dc_users
     classs     varchar(255) null,
     date       datetime     not null
 );
+
+create table active_bans
+(
+    id              int auto_increment
+        primary key,
+    uuid            varchar(64)  not null,
+    dc_id           bigint       null,
+    first_name      varchar(255) null,
+    classs          varchar(255) null,
+    date_registered datetime     null,
+    date_banned     datetime     null,
+    reason          varchar(255) null
+);
+
+create table inactive_bans
+(
+    id            int auto_increment
+        primary key,
+    uuid          varchar(64)  not null,
+    dc_id         bigint       null,
+    first_name    varchar(255) null,
+    classs        varchar(255) null,
+    date_banned   datetime     null,
+    date_unbanned datetime     null,
+    reason        varchar(255) null
+);
 ```
 (some attributes may be better to remove for your personal use)
 

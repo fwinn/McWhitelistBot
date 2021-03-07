@@ -1,11 +1,10 @@
-from datetime import datetime
 import json
 import mysql.connector
 import logging
 import os
 import _pickle
 
-from . import mail, request
+from . import mail, request, util
 
 whitelist_location = 'data/survival_list.json'
 requests_location = 'data/requests.pk1'
@@ -58,7 +57,7 @@ async def write_whitelist(r: request.WhitelistRequest):
     # Database:
     db = get_db()
     cursor = db.cursor()
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    timestamp = util.now()
     logging.info('Writing database...')
     sql = 'INSERT INTO dc_users (uuid, dc_id, first_name, classs, date) VALUES (%s, %s, %s, %s, %s)'
     val = (uuid, dc_id, first_name, classs, timestamp)
