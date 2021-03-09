@@ -85,13 +85,13 @@ async def ban(ctx, *args):
         await ctx.send('Reason too long (Max 255 chars)')
         return
     if '<@!' in target:
-        # arg is expected to be a Discord User
+        # target is expected to be a Discord User
         dc_id = target.strip('<@!>')
         logging.info('Discord ID to remove from whitelist: ' + dc_id)
         banhammer.ban_by_dc_id(dc_id, reason)
         await ctx.send('{} has been removed from the whitelist. (Reason: {})'.format(target, reason))
     else:
-        # arg is expected to be a Minecraft Username
+        # target is expected to be a Minecraft Username
         logging.info('Banning by Minecraft name...')
         uuid = util.get_uuid(target)
         if not uuid:
@@ -99,6 +99,12 @@ async def ban(ctx, *args):
             return
         banhammer.ban_by_mc_uuid(uuid, reason)
         await ctx.send('MC Acc {} was banned. (Reason: {})'.format(target, reason).format(target))
+        dc_id = filemanager.get_dc_id(uuid)
+    dc_user = await bot.fetch_user(dc_id)
+    ban_infos = filemanager.get_ban_infos(dc_id)
+    await dc_user.send(
+        """Du wurdest vom Minecraft-Server wegen {} gebannt. Fragen --> Support Channel auf dem Discord-Server (unter 
+    Angabe der Bann-ID {})""".format(ban_infos['reason'], ban_infos['ban_id']))
 
 
 @bot.command()
@@ -123,22 +129,22 @@ async def whitelist(ctx, arg1, arg2, arg3):
     classs = arg3
     member = ctx.author
     await ctx.message.delete()
-    admins = bot.get_channel(requests_channel)
     logging.debug('Fetching UUID...')
     uuid = util.get_uuid(mc_name)
     if not uuid:
         await ctx.send('Der Spieler `{}` wurde nicht gefunden {}.'.format(mc_name, member.mention))
         return
     ids_in_db_amount = filemanager.ids_in_db(uuid, member.id)
-    if ids_in_db_amount[0] > 0:
+    if ids_in_db_amount['amount_mc'] > 0:
         await ctx.send('Der Spieler `{}` ist bereits gewhitelistet {}.'.format(mc_name, member.mention))
         return
+    admins = bot.get_channel(requests_channel)
     embed = discord.Embed(title='Whitelist-Anfrage', color=0x22a7f0)
     embed.add_field(name='von', value=member.mention)
     embed.add_field(name='MC-Username', value=mc_name)
     embed.add_field(name='Vorname', value=first_name)
     embed.add_field(name='Klasse', value=classs)
-    embed.add_field(name='Von diesem User bereits gewhitelistet', value=ids_in_db_amount[1])
+    embed.add_field(name='Von diesem User bereits gewhitelistet', value=ids_in_db_amount['amount_dc'])
     admin_msg = await admins.send(embed=embed)
     await admin_msg.add_reaction('✅')
     await admin_msg.add_reaction('❌')

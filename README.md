@@ -31,25 +31,24 @@ If you want to receive mail notifications about critical errors: (credentials fo
 create table dc_users
 (
     ID         int auto_increment
-               primary key,
+        primary key,
     uuid       varchar(64)  not null,
     dc_id      bigint       not null,
     first_name varchar(255) null,
     classs     varchar(255) null,
     date       datetime     not null
-);
+)
+    comment 'date registered';
 
 create table active_bans
 (
-    id              int auto_increment
+    id          int auto_increment
         primary key,
-    uuid            varchar(64)  not null,
-    dc_id           bigint       null,
-    first_name      varchar(255) null,
-    classs          varchar(255) null,
-    date_registered datetime     null,
-    date_banned     datetime     null,
-    reason          varchar(255) null
+    uuid        varchar(64)  not null,
+    date_banned datetime     null,
+    reason      varchar(255) null,
+    constraint active_bans_uuid_uindex
+        unique (uuid)
 );
 
 create table inactive_bans
@@ -57,12 +56,16 @@ create table inactive_bans
     id            int auto_increment
         primary key,
     uuid          varchar(64)  not null,
-    dc_id         bigint       null,
-    first_name    varchar(255) null,
-    classs        varchar(255) null,
     date_banned   datetime     null,
     date_unbanned datetime     null,
     reason        varchar(255) null
+);
+
+create table whitelist
+(
+    uuid varchar(64) not null,
+    constraint whitelist_uuid_uindex
+        unique (uuid)
 );
 ```
 (some attributes may be better to remove for your personal use)
