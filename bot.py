@@ -108,6 +108,19 @@ async def ban(ctx, *args):
 
 
 @bot.command()
+async def ban_infos(ctx, arg):
+    infos = filemanager.get_ban_infos_by_id(arg)
+    if not infos:
+        await ctx.send('Ban not found.')
+        return
+    embed = discord.Embed(title='Ban Infos', color=0x22a7f0)
+    embed.add_field(name='Reason', value=infos['reason'])
+    embed.add_field(name='Date of ban', value=infos['date_banned'])
+    embed.add_field(name='User', value='<@!{}>'.format(infos['dc_id']))
+    await ctx.send(embed=embed)
+
+
+@bot.command()
 async def shutdown(ctx):
     if ctx.channel.id != admin_channel:
         return
@@ -136,7 +149,7 @@ async def whitelist(ctx, arg1, arg2, arg3):
         return
     ids_in_db_amount = filemanager.ids_in_db(uuid, member.id)
     if ids_in_db_amount['amount_mc'] > 0:
-        await ctx.send('Der Spieler `{}` ist bereits gewhitelistet {}.'.format(mc_name, member.mention))
+        await ctx.send('Der Spieler `{}` ist bereits registriert {}.'.format(mc_name, member.mention))
         return
     admins = bot.get_channel(requests_channel)
     embed = discord.Embed(title='Whitelist-Anfrage', color=0x22a7f0)

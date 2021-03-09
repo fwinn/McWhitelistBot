@@ -15,19 +15,34 @@ db_pw = os.getenv('DB_PASSWORD')
 db_name = os.getenv('DB_NAME')
 
 
-def get_ban_infos(dc_id):
+def get_ban_infos_by_id(arg):
     result = {}
     db = get_db()
     cursor = db.cursor()
-    sql = "SELECT id, reason from active_bans WHERE uuid = (SELECT uuid from dc_users WHERE dc_id = %s)"
-    val = (dc_id,)
+    if '<@!' in arg:
+        # arg is expected to be a Discord User
+        dc_id = arg.strip('<@!>')
+        sql = """SELECT id, reason, date_banned from active_bans
+              WHERE uuid = (SELECT uuid from dc_users WHERE dc_id = %s)"""
+        val = (dc_id,)
+    else:
+        dc_id = None
+        sql = "SELECT id, reason, date_banned from active_bans WHERE id = %s"
+        val = (arg,)
     cursor.execute(sql, val)
     tmp = cursor.fetchone()
     if tmp:
         result['ban_id'] = tmp[0]
         result['reason'] = tmp[1]
+        result['date_banned'] = tmp[2]
     else:
         return None
+    if not dc_id:
+        sql = "SELECT dc_id from dc_users WHERE uuid = (SELECT uuid from active_bans WHERE active_bans.id = %s)"
+        val = (result['ban_id'], )
+        cursor.execute(sql, val)
+        dc_id = cursor.fetchone()[0]
+    result['dc_id'] = dc_id
     cursor.close()
     db.close()
     return result
@@ -96,7 +111,7 @@ async def write_whitelist(r: request.WhitelistRequest):
     val = (uuid, dc_id, first_name, classs, timestamp)
     cursor.execute(sql, val)
     sql = 'INSERT INTO whitelist (uuid) VALUES (%s)'
-    val = (uuid, )
+    val = (uuid,)
     cursor.execute(sql, val)
     db.commit()
     cursor.close()
