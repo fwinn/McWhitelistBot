@@ -163,7 +163,7 @@ async def whitelist(ctx, arg1, arg2, arg3):
     await admin_msg.add_reaction('❌')
     requests_messages.append(request.WhitelistRequest(member.id, admin_msg.id, mc_name, uuid, first_name, classs))
     await ctx.send('Deine Anfrage für `{}` wurde versandt {}.'.format(mc_name, member.mention))
-    logging.info('Request succesful')
+    logging.info('Request successful')
 
 
 # Errors:
