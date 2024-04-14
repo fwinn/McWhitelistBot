@@ -14,7 +14,6 @@ bot = commands.Bot(command_prefix='.')
 bot_token = os.getenv('BOT_TOKEN')
 server_ip = os.getenv('SERVER_IP')
 mc_version = '1.16.5'
-# Discord Channel used for commands:
 admin_channel = int(os.getenv('ADMIN_CHANNEL_ID'))
 # Discord Channel used for confirming / denying requests:
 requests_channel = int(os.getenv('CHANNEL_ID_REQUESTS'))
@@ -30,7 +29,7 @@ def take_request(message_id):
             requests_messages.remove(i)
             return tmp
 
-
+# dhjwauidjwhai
 # Bot events:
 
 @bot.event
